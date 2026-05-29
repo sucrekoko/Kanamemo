@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Kanamemo — カナメのための暗記アプリ</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kanamemo">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ▼ 共通トップバー（ホーム以外で表示） -->
+<header id="topbar" class="topbar" hidden>
+  <button id="homeBtn" class="topbar-home" aria-label="ホームに戻る">←&nbsp;ホーム</button>
+  <div id="topbarTitle" class="topbar-title"></div>
+  <div class="topbar-spacer"></div>
+</header>
+
+<!-- ============================================================ -->
+<!-- ▼ ホーム（タイトル） -->
+<!-- ============================================================ -->
+<section id="screen-home" class="screen screen--active">
+  <div class="home">
+    <div class="home__brand">
+      <div class="home__mark" aria-hidden="true">K</div>
+      <h1 class="home__title">Kanamemo</h1>
+      <p class="home__subtitle">カナメのための暗記アプリ</p>
+    </div>
+
+    <!-- ステータスストリップ：ストリーク・累計問題・ベストスコア -->
+    <div class="home__stats" id="homeStats" hidden>
+      <div class="home__stat">
+        <div class="home__stat-icon">🔥</div>
+        <div class="home__stat-value" id="homeStatStreak">0</div>
+        <div class="home__stat-label">日連続</div>
+      </div>
+      <div class="home__stat">
+        <div class="home__stat-icon">📚</div>
+        <div class="home__stat-value" id="homeStatTotal">0</div>
+        <div class="home__stat-label">問</div>
+      </div>
+      <div class="home__stat">
+        <div class="home__stat-icon">🏆</div>
+        <div class="home__stat-value" id="homeStatBest">0</div>
+        <div class="home__stat-label">点</div>
+      </div>
+    </div>
+    <div class="home__modes">
+      <button id="modeFlashcard" class="mode-card">
+        <div class="mode-card__icon">📚</div>
+        <div class="mode-card__body">
+          <div class="mode-card__title">フラッシュカード</div>
+          <div class="mode-card__desc">単元を選んで自分のペースで暗記</div>
+        </div>
+        <div class="mode-card__arrow" aria-hidden="true">→</div>
+      </button>
+      <button id="modeChallenge" class="mode-card">
+        <div class="mode-card__icon mode-card__icon--brave">
+          <img src="images/Brave_HP5.png" alt="勇者">
+        </div>
+        <div class="mode-card__body">
+          <div class="mode-card__title">チャレンジ</div>
+          <div class="mode-card__desc">勇者となってモンスターを倒そう</div>
+        </div>
+        <div class="mode-card__arrow" aria-hidden="true">→</div>
+      </button>
+    </div>
+    <button id="historyLink" class="home__history-link" type="button">
+      📊 学習履歴・リセット
+    </button>
+
+    <!-- マスコット：カナメくん -->
+    <div class="mascot" aria-hidden="true">
+      <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="mascotCardGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#f8fafc"/>
+          </linearGradient>
+        </defs>
+        <!-- 影 -->
+        <ellipse cx="50" cy="122" rx="22" ry="3" fill="rgba(0,0,0,0.12)"/>
+        <!-- 本体（カード型） -->
+        <rect x="18" y="20" width="64" height="80" rx="11" fill="url(#mascotCardGrad)" stroke="#cbd5e1" stroke-width="1.5"/>
+        <!-- K マーク -->
+        <text x="26" y="38" font-family="SF Pro Display, -apple-system, sans-serif" font-size="12" font-weight="800" fill="#4f46e5">K</text>
+        <!-- 目 -->
+        <ellipse class="mascot-eye mascot-eye--l" cx="38" cy="60" rx="3" ry="3" fill="#1e1b4b"/>
+        <ellipse class="mascot-eye mascot-eye--r" cx="62" cy="60" rx="3" ry="3" fill="#1e1b4b"/>
+        <!-- ほっぺ -->
+        <circle cx="32" cy="72" r="3.5" fill="#fbcfe8" opacity="0.75"/>
+        <circle cx="68" cy="72" r="3.5" fill="#fbcfe8" opacity="0.75"/>
+        <!-- 口 -->
+        <path d="M40 78 Q50 86 60 78" stroke="#1e1b4b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- 左手 -->
+        <line x1="18" y1="62" x2="9" y2="72" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="9" cy="72" r="2.5" fill="#4f46e5"/>
+        <!-- 右手＆えんぴつ -->
+        <line x1="82" y1="62" x2="91" y2="72" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="91" y1="72" x2="97" y2="78" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+        <polygon points="96,77 100,80 97,82" fill="#1e1b4b"/>
+        <!-- 足 -->
+        <line x1="36" y1="100" x2="36" y2="113" stroke="#4f46e5" stroke-width="3" stroke-linecap="round"/>
+        <line x1="64" y1="100" x2="64" y2="113" stroke="#4f46e5" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="34" cy="116" rx="7" ry="3" fill="#4f46e5"/>
+        <ellipse cx="66" cy="116" rx="7" ry="3" fill="#4f46e5"/>
+      </svg>
+      <div class="mascot__name">カナメくん</div>
+    </div>
+
+    <p class="home__foot">made with ♡ for studying</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ 学習履歴 -->
+<!-- ============================================================ -->
+<section id="screen-history" class="screen" hidden>
+  <div class="history">
+    <section class="history__section">
+      <h3 class="history__h">フラッシュカード　単元別の累計</h3>
+      <div id="historyFcList" class="history-list"></div>
+    </section>
+
+    <section class="history__section">
+      <h3 class="history__h">チャレンジ　ランキング</h3>
+      <div id="historyChList" class="history-list"></div>
+    </section>
+  </div>
+  <div class="screen-footer">
+    <button id="historyReset" class="danger-btn" type="button">⚠ すべてリセット</button>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ フラッシュカード：単元選択 -->
+<!-- ============================================================ -->
+<section id="screen-fc-select" class="screen" hidden>
+  <div class="select-screen">
+    <h2 class="select-screen__title">単元を選ぶ</h2>
+    <p class="select-screen__sub">複数選んで「開始」をタップ</p>
+    <div id="fcChips" class="mode-chips-grouped" aria-label="単元選択"></div>
+  </div>
+  <div class="screen-footer">
+    <button id="fcStart" class="primary-btn" disabled>開始</button>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ フラッシュカード：学習画面 -->
+<!-- ============================================================ -->
+<section id="screen-flashcard" class="screen" hidden>
+  <div id="genreBadge" class="genre-badge">単元を選択してください</div>
+
+  <div id="card" class="flip-card" role="button" aria-label="タップで答えを表示">
+    <div class="swipe-hint swipe-hint--right" aria-hidden="true">
+      <span class="swipe-hint__mark">✓</span><span class="swipe-hint__label">正解</span>
+    </div>
+    <div class="swipe-hint swipe-hint--left" aria-hidden="true">
+      <span class="swipe-hint__mark">✓</span><span class="swipe-hint__label">正解</span>
+    </div>
+    <div class="long-press-overlay" aria-hidden="true">
+      <div class="long-press-pill">
+        <span class="long-press-pill__mark">✗</span><span class="long-press-pill__label">不正解</span>
+      </div>
+    </div>
+    <div class="flip-inner">
+      <div class="flip-front">
+        <div id="q">単元を選んでください</div>
+        <img id="qImg" class="card-img" alt="" hidden>
+      </div>
+      <div class="flip-back">
+        <div id="a"></div>
+        <img id="aImg" class="card-img" alt="" hidden>
+      </div>
+    </div>
+  </div>
+
+  <div id="gestureHint" class="gesture-hint">カードをタップして答えを表示</div>
+
+  <div id="stats">
+    正解 <span id="right">0</span>
+    ／ 不正解 <span id="wrongCount">0</span>
+    ／ 正答率 <span id="rate">0%</span>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ チャレンジ：範囲選択 -->
+<!-- ============================================================ -->
+<section id="screen-challenge-select" class="screen" hidden>
+  <div class="select-screen">
+    <h2 class="select-screen__title">チャレンジの範囲を選ぶ</h2>
+    <p class="select-screen__sub">4択と並べ替えが混ざって出題（20問・15秒制限・HP3）</p>
+    <div id="chChips" class="mode-chips-grouped" aria-label="チャレンジ範囲選択"></div>
+    <div id="chSelectInfo" class="select-info"></div>
+  </div>
+  <div class="screen-footer">
+    <button id="chStart" class="primary-btn" disabled>チャレンジ開始</button>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ チャレンジ：本編 -->
+<!-- ============================================================ -->
+<section id="screen-challenge" class="screen" hidden>
+  <!-- ▼ バトルエリア（勇者ステータス＋敵モンスター＋時間バー） -->
+  <div class="ch-battle dq-window">
+    <div class="ch-battle__row">
+      <!-- 勇者の枠：肖像＋HP/CB/EXP -->
+      <div class="ch-hero-box">
+        <div class="ch-hero__portrait" id="chHeroPortrait">
+          <img id="chHeroSprite" src="images/Brave_HP5.png" alt="勇者">
+        </div>
+        <div class="ch-hero__stats">
+          <div class="ch-hero__stat" id="chHp"></div>
+          <div class="ch-hero__stat" id="chCB"></div>
+          <div class="ch-hero__stat" id="chExp"></div>
+        </div>
+      </div>
+      <!-- 敵モンスター＋足元のタイムバー -->
+      <div class="ch-battle__enemy">
+        <div class="ch-enemy" id="chEnemy" aria-hidden="true">
+          <div class="ch-enemy-hp" id="chEnemyHp"></div>
+          <img src="images/Slime.png" alt="敵モンスター" class="ch-enemy__sprite" id="chEnemySprite">
+        </div>
+        <div class="ch-battle__timer">
+          <div class="ch-timer-bar" aria-hidden="true">
+            <div class="ch-timer-bar__fill" id="chTimerFill"></div>
+          </div>
+          <span class="ch-timer-display" id="chTimerDisplay">15.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 旧コンボバナー（撤去・互換のため非表示要素として残置） -->
+  <div id="chCombo" class="ch-combo" hidden></div>
+
+  <!-- ▼ 下部：左コマンド枠 + 右メッセージ枠（DQ風） -->
+  <div class="ch-dq-row">
+    <div class="ch-cmd-box dq-window">
+      <div class="ch-cmd" data-cmd="4choice">
+        <span class="ch-cmd__cursor">▶</span><span class="ch-cmd__label">えらぶ</span>
+      </div>
+      <div class="ch-cmd" data-cmd="arrange">
+        <span class="ch-cmd__cursor">▶</span><span class="ch-cmd__label">ならべる</span>
+      </div>
+      <div class="ch-cmd ch-cmd--disabled" data-cmd="matching">
+        <span class="ch-cmd__cursor">▶</span><span class="ch-cmd__label">つなげる</span>
+      </div>
+    </div>
+    <div class="ch-msg-box dq-window">
+      <div class="ch-q-meta" id="chQMeta"></div>
+      <div id="chQText" class="ch-q-text"></div>
+      <img id="chQImg" class="ch-q-img" alt="" hidden>
+    </div>
+  </div>
+
+  <!-- ▼ 最下部：interactive 領域（選択肢／タイル／テンキー／マッチング） -->
+  <div class="ch-interactive">
+    <!-- 4択 -->
+    <div id="chChoices" class="ch-choices" hidden></div>
+
+    <!-- 並べ替え -->
+    <div id="chArrangeArea" class="ch-arrange-area" hidden>
+      <div id="chSlots" class="ch-slots"></div>
+      <div id="chTiles" class="ch-tiles"></div>
+    </div>
+
+    <!-- 数字テンキー（未使用・互換のため残置） -->
+    <div id="chNumericArea" class="ch-numeric-area" hidden>
+      <div id="chNumericDisplay" class="ch-numeric-display"></div>
+      <div class="ch-numpad">
+        <button class="ch-numkey" data-key="1">1</button>
+        <button class="ch-numkey" data-key="2">2</button>
+        <button class="ch-numkey" data-key="3">3</button>
+        <button class="ch-numkey" data-key="4">4</button>
+        <button class="ch-numkey" data-key="5">5</button>
+        <button class="ch-numkey" data-key="6">6</button>
+        <button class="ch-numkey" data-key="7">7</button>
+        <button class="ch-numkey" data-key="8">8</button>
+        <button class="ch-numkey" data-key="9">9</button>
+        <button class="ch-numkey ch-numkey--util" data-key="backspace">⌫</button>
+        <button class="ch-numkey" data-key="0">0</button>
+        <button class="ch-numkey ch-numkey--util" data-key="dot">.</button>
+      </div>
+    </div>
+
+    <!-- マッチング（未実装・互換のため残置） -->
+    <div id="chMatchingArea" class="ch-matching-area" hidden>
+      <div class="ch-matching-cols">
+        <div class="ch-matching-col" id="chMatchingQs"></div>
+        <div class="ch-matching-col" id="chMatchingAs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▼ アクションボタン：こたえる／にげる -->
+  <div class="ch-actions">
+    <button id="chSubmit" class="ch-action-btn ch-action-btn--primary" type="button" disabled>こたえる</button>
+    <button id="chEscape" class="ch-action-btn ch-action-btn--secondary" type="button">にげる</button>
+  </div>
+
+  <div id="chFeedback" class="ch-feedback" hidden></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ チャレンジ：結果 -->
+<!-- ============================================================ -->
+<section id="screen-challenge-result" class="screen" hidden>
+  <div class="result">
+    <div id="chResultTitle" class="result__title">🎉 クリア！</div>
+    <div class="result__big">
+      <span id="chResultScore">0</span><small>点</small>
+    </div>
+    <div class="result__sub">
+      <div>正解 <span id="chResultRight">0</span> / <span id="chResultTotal">20</span> 問</div>
+      <div>最高コンボ ×<span id="chResultMaxCombo">0</span></div>
+      <div>残りHP <span id="chResultHp" class="ch-hp"></span></div>
+    </div>
+    <div id="chResultMessage" class="result__message"></div>
+  </div>
+  <div class="result-actions">
+    <button id="chResultRetry" class="primary-btn">もう一度</button>
+    <button id="chResultChangeRange" class="secondary-btn">範囲を変える</button>
+    <button id="chResultHome" class="secondary-btn">ホームへ</button>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ▼ フラッシュカード用：下部固定アクションバー -->
+<!-- ============================================================ -->
+<nav id="actionBar" class="action-bar" aria-label="操作" hidden>
+  <div class="buttons">
+    <button id="show">答えを表示</button>
+    <button id="back" disabled>戻る</button>
+    <button id="correct">正解</button>
+    <button id="wrong">不正解</button>
+    <button id="next">次へ</button>
+  </div>
+</nav>
+
+<!-- スクリプト読み込み順：依存関係の順に並べる -->
+<script src="scripts/srs.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/helpers.js"></script>
+<script src="scripts/storage.js"></script>
+<script src="scripts/screens.js"></script>
+<script src="scripts/flashcard.js"></script>
+<script src="scripts/challenge.js"></script>
+<script src="scripts/app.js"></script>
+<script src="cards/_manifest.js"></script>
+<script src="scripts/loader.js"></script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js")
+        .then(reg => console.log("[sw] registered", reg.scope))
+        .catch(err => console.warn("[sw] registration failed", err));
+    });
+  }
+</script>
+
+</body>
+</html>

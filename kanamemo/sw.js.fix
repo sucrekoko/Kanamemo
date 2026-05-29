@@ -1,0 +1,112 @@
+// sw.js — Service Worker
+// =================================================================
+// PWA のオフライン対応用サービスワーカー。
+// アセットをプリキャッシュ → ネット先取り、失敗時キャッシュ → 最終フォールバック。
+// アプリを更新したら下の CACHE_VERSION を上げると、次回起動時に新しいキャッシュへ切替。
+// =================================================================
+
+const CACHE_VERSION = "v5.3.0";
+const CACHE_NAME = `flashcard-${CACHE_VERSION}`;
+
+// プリキャッシュ対象（cards/* はマニフェストから動的に追加する）
+const STATIC_ASSETS = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./manifest.json",
+  "./scripts/srs.js",
+  "./scripts/ui.js",
+  "./scripts/helpers.js",
+  "./scripts/storage.js",
+  "./scripts/screens.js",
+  "./scripts/flashcard.js",
+  "./scripts/challenge.js",
+  "./scripts/app.js",
+  "./scripts/loader.js",
+  "./cards/_manifest.js",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png"
+];
+
+// install: 静的アセットを取得 → さらに manifest を取得してカードファイルもキャッシュ
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(STATIC_ASSETS);
+
+    // cards/_manifest.js から CARDS_MANIFEST を読み出してカードもキャッシュ
+    try {
+      const res = await fetch("./cards/_manifest.js", { cache: "no-cache" });
+      const text = await res.text();
+      const m = text.match(/CARDS_MANIFEST\s*=\s*(\[[^\]]*\])/);
+      if (m) {
+        // JSON ではないので JS の配列をパース：簡易的に JSON 化
+        const arr = JSON.parse(m[1].replace(/'/g, '"').replace(/,(\s*\])/g, "$1"));
+        const cardUrls = arr.map(name => `./cards/${name}.js`);
+        await cache.addAll(cardUrls);
+      }
+    } catch (e) {
+      console.warn("[sw] cards のプリキャッシュに失敗", e);
+    }
+
+    // images フォルダの主要画像をプリキャッシュ（モンスター＋勇者）
+    for (const img of [
+      "./images/solubility_h3bo3.png",
+      "./images/Slime.png",
+      "./images/Kingslime.png",
+      "./images/Killermachine.png",
+      "./images/Dragon.png",
+      "./images/Zoma.png",
+      "./images/Brave_HP5.png",
+      "./images/Brave_HP2.png",
+      "./images/Brave_HP1.png",
+      "./images/Brave_CB0.png",
+      "./images/Brave_CB5.png",
+      "./images/Brave_CB10.png"
+    ]) {
+      try { await cache.add(img); } catch (_) { /* なくてもOK */ }
+    }
+
+    self.skipWaiting();
+  })());
+});
+
+// activate: 古いキャッシュを削除
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys.filter(k => k.startsWith("flashcard-") && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+    );
+    await self.clients.claim();
+  })());
+});
+
+// fetch: ネット先取り → 失敗したらキャッシュ
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  // 同一オリジンのみ扱う
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    try {
+      // ネット優先（最新のカードに追従しやすい）
+      const networkRes = await fetch(req);
+      // 成功したらキャッシュ更新
+      if (networkRes && networkRes.status === 200) {
+        cache.put(req, networkRes.clone()).catch(() => {});
+      }
+      return networkRes;
+    } catch (e) {
+      // ネット失敗時はキャッシュ
+      const cached = await cache.match(req, { ignoreSearch: true });
+      if (cached) return cached;
+      // ナビゲーション要求はトップにフォ�
